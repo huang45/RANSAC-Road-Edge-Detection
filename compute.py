@@ -1,11 +1,23 @@
 import cv2
 import sys
+import numpy as np
+import math
 
-# this function is called as a call-back everytime the trackbar is moved
-# (here we just do nothing)
-
-def nothing(x):
-    pass
+def illumination(image, alpha):
+    rows,cols,channels = image.shape
+    print image.shape
+    newImage = np.zeros((rows,cols,1), np.uint8)
+    for x in xrange (rows):
+        for y in xrange (cols):
+            if image[x][y][0] == 0:
+                image[x][y][0] = 1
+            if image[x][y][1] == 0:
+                image[x][y][1] = 1
+            if image[x][y][2] == 0:
+                image[x][y][2] = 1
+            newValue = 0.5 + math.log(image[x][y][1]) - alpha*math.log(image[x][y][2]) - (1-alpha)*math.log(image[x][y][0])
+            newImage[x][y] = newValue * 255
+    return newImage
 
 windowName = "Original Image"; # window name
 windowName2 = "New Image"; # window name
@@ -27,7 +39,7 @@ if (len(sys.argv) == 2):
     smoothing_neighbourhood = 3;
     sobel_size = 3; # greater than 7 seems to crash
 
-    frame = cv2.imread(sys.argv[1])
+    img = cv2.imread(sys.argv[1])
 
     smoothing_neighbourhood = max(3, smoothing_neighbourhood);
     if not(smoothing_neighbourhood % 2):
@@ -39,7 +51,7 @@ if (len(sys.argv) == 2):
 
     # convert to grayscale
 
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY);
+    gray_frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY);
 
     # performing smoothing on the image using a 5x5 smoothing mark (see manual entry for GaussianBlur())
 
@@ -49,10 +61,10 @@ if (len(sys.argv) == 2):
 
     canny = cv2.Canny(smoothed, lower_threshold, upper_threshold, apertureSize=sobel_size);
 
-    # display image
-
-    cv2.imshow(windowName,frame);
+    cv2.imshow(windowName,img);
+    cv2.moveWindow(windowName, 0, 100)
     cv2.imshow(windowName2,canny)
+    cv2.moveWindow(windowName2, 640, 100)
 
     cv2.waitKey()
 
