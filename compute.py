@@ -2,6 +2,7 @@ import cv2
 import sys
 import numpy as np
 import math
+import random
 
 def illuminationAlg(image, alpha):
     rows,cols,channels = image.shape
@@ -24,8 +25,70 @@ def illuminationHSV(image):
     hsv = cv2.split(image_hsv)
     return hsv[2]
 
-windowName = "Original Image"
-windowName2 = "Canny on Valye (HSV)"
+def nothing(x):
+    pass
+
+def ransac(image, edges):
+    # Build a bank of the locations of edge pixels
+    candidates = []
+    rows,cols = edges.shape
+    for i in xrange (rows):
+        for j in xrange (cols):
+            if edges[i][j] == 255:
+                candidates.append([i,j])
+    # Sample two random points
+    length = len(candidates)
+    iterations = 10
+    current = 0
+    best = 0
+    bestLine = []
+    while current < iterations:
+        rand1 = rand2 = random.randrange(length) # MAY NOT BE TOTALLY RANDOM -- CHECK
+        while rand1 == rand2:
+            rand2 = random.randrange(length)
+        x1,y1 = candidates[rand1]
+        x2,y2 = candidates[rand2]
+        # Find equation of a line between the two edge pixels
+        lineImage = np.zeros((rows,cols,1), np.uint8)
+        cv2.line(lineImage, (x1,y1), (x2,y2), (255,0,0), 2)
+        #for x in xrange (rows):
+        #    for y in xrange (cols):
+        #        expected = (int)(((y2 - y1) / (x2 - x1)*(x - x1)) + y1 - y)
+        #        if expected <= 2 and expected >= -2:
+        #            blank[x][y] = 255
+        intersect = cv2.bitwise_and(edges, lineImage)
+        inliers = 0
+        for x in xrange (rows):
+            for y in xrange (cols):
+                if intersect[x][y] == 255:
+                    inliers += 1
+        if inliers > best:
+            best = inliers
+            bestLine = [(x1,y1), (x2,y2)]
+        current += 1
+    # Construct line on empty image with an area around it
+    # Logically AND the two images, to see how many pixels are in area
+    cv2.line(image, bestLine[0], bestLine[1], (0,0,255), 2)
+    return image
+
+def hough(image, edges):
+    lines = cv2.HoughLines(edges,1,np.pi/180,200)
+    for rho,theta in lines[0]:
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a*rho
+        y0 = b*rho
+        x1 = int(x0 + 1000*(-b))
+        y1 = int(y0 + 1000*(a))
+        x2 = int(x0 - 1000*(-b))
+        y2 = int(y0 - 1000*(a))
+        cv2.line(image,(x1,y1),(x2,y2),(0,0,255),2)
+    return image
+
+
+windowName = "Hough Detection"
+windowName2 = "RANSAC Detection"
+keep_processing = True
 
 if (len(sys.argv) == 2):
 
@@ -34,7 +97,7 @@ if (len(sys.argv) == 2):
 
     lower_threshold = 25
     upper_threshold = 120
-    smoothing_neighbourhood = 3
+    smoothing_neighbourhood = 5
     sobel_size = 3
 
     image = cv2.imread(sys.argv[1])
@@ -47,7 +110,6 @@ if (len(sys.argv) == 2):
     if not(sobel_size % 2):
         sobel_size = sobel_size + 1
 
-    # gray_frame1 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY);
     gray_frame = illuminationHSV(image)
 
     # performing smoothing on the image using a 5x5 smoothing mark (see manual entry for GaussianBlur())
@@ -56,12 +118,20 @@ if (len(sys.argv) == 2):
 
     # perform canny edge detection
 
-    canny = cv2.Canny(smoothed, lower_threshold, upper_threshold, apertureSize=sobel_size)
+    edges = cv2.Canny(smoothed, lower_threshold, upper_threshold, apertureSize=sobel_size)
 
-    #cv2.imshow(windowName, image)
-    cv2.imshow(windowName, image)
+    #_, contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    #cv2.drawContours(edges, contours, -1, (255,0,0), 3)
+
+    copyImage = image.copy()
+    hough = hough(copyImage, edges)
+
+    cv2.imshow(windowName, hough)
     cv2.moveWindow(windowName, 0, 0)
-    cv2.imshow(windowName2, canny)
+
+    ransac = ransac(image, edges)
+
+    cv2.imshow(windowName2, ransac)
     cv2.moveWindow(windowName2, 640, 0)
 
     cv2.waitKey()
