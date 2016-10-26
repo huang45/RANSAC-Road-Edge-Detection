@@ -20,11 +20,11 @@ if (len(sys.argv) == 2):
     cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
     cv2.namedWindow(windowName2, cv2.WINDOW_NORMAL)
 
-    lower_threshold = 25
+    lower_threshold = 75
     cv2.createTrackbar("lower", windowName2, lower_threshold, 255, nothing)
-    upper_threshold = 120
+    upper_threshold = 175
     cv2.createTrackbar("upper", windowName2, upper_threshold, 255, nothing)
-    smoothing_neighbourhood = 5
+    smoothing_neighbourhood = 7
     cv2.createTrackbar("smoothing", windowName2, smoothing_neighbourhood, 15, nothing)
     sobel_size = 3
     cv2.createTrackbar("sobel size", windowName2, sobel_size, 7, nothing)
