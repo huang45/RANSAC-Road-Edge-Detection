@@ -6,7 +6,8 @@ import random
 
 def illuminationAlg(image, alpha):
     rows,cols,channels = image.shape
-    newImage = np.zeros((rows,cols,1), np.uint8)
+    newImage = np.zeros((rows,cols,1), np.float)
+    image = image.astype('float') / 255
     for x in xrange (rows):
         for y in xrange (cols):
             if image[x][y][0] == 0:
@@ -15,26 +16,23 @@ def illuminationAlg(image, alpha):
                 image[x][y][1] = 1
             if image[x][y][2] == 0:
                 image[x][y][2] = 1
-            newValue = 0.5 + math.log(image[x][y][1]) - alpha*math.log(image[x][y][2]) - (1-alpha)*math.log(image[x][y][0])
-            newImage[x][y] = newValue * 255
+            newValue = 0.5 + math.log(image[x][y][2]) - (alpha * math.log(image[x][y][1])) - ((1 - alpha) * math.log(image[x][y][0]))
+            newImage[x][y] = newValue
+    newImage = (newImage * 255).astype('uint8')
     return newImage
 
 def illuminationHSV(image):
     rows,cols,channels = image.shape
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     hsv = cv2.split(image_hsv)
-    return hsv[0]
-
-def nothing(x):
-    pass
+    return hsv[1]
 
 def ransac(image, edges):
     # Build a bank of the locations of edge pixels
     candidates = []
     rows,cols = edges.shape
-    print rows/2
-    for i in xrange ((rows/2), rows):
-        for j in xrange (cols):
+    for i in xrange (rows):
+        for j in xrange ((cols/2), cols):
             if edges[i][j] == 255:
                 candidates.append([i,j])
     # Sample two random points
@@ -48,14 +46,10 @@ def ransac(image, edges):
         while rand1 == rand2:
             rand2 = random.randrange(length)
         x1,y1 = candidates[rand1]
-        print "Picking pixel: ",x1,", ",y1
         x2,y2 = candidates[rand2]
-        print "Picking pixel: ",x2,", ",y2
         lineImage = np.zeros((rows,cols), np.uint8)
         #line = cv2.fitLine(np.array([(x1,y1), (x2,y2)]), cv2.DIST_L2, 0, 0.01, 0.01)
         cv2.line(lineImage, (x1,y1), (x2,y2), (255,0,0), 3)
-        cv2.imshow("Line", lineImage)
-        cv2.namedWindow("Line", cv2.WINDOW_NORMAL)
         #for x in xrange (rows):
         #    for y in xrange (cols):
         #        expected = (int)(((y2 - y1) / (x2 - x1)*(x - x1)) + y1 - y)
@@ -100,9 +94,9 @@ if (len(sys.argv) == 2):
     cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
     cv2.namedWindow(windowName2, cv2.WINDOW_NORMAL)
 
-    lower_threshold = 75
-    upper_threshold = 175
-    smoothing_neighbourhood = 7
+    lower_threshold = 110
+    upper_threshold = 170
+    smoothing_neighbourhood = 3
     sobel_size = 3
 
     image = cv2.imread(sys.argv[1])
@@ -115,7 +109,11 @@ if (len(sys.argv) == 2):
     if not(sobel_size % 2):
         sobel_size = sobel_size + 1
 
-    gray_frame = illuminationHSV(image)
+    gray_frame = illuminationAlg(image, 0.5)
+    windowName3 = "Test Illumination"
+    cv2.namedWindow(windowName3, cv2.WINDOW_NORMAL)
+    cv2.imshow(windowName3, gray_frame)
+    cv2.moveWindow(windowName3, 0, 0)
 
     # performing smoothing on the image using a 5x5 smoothing mark (see manual entry for GaussianBlur())
 
