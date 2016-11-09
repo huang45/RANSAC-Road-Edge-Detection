@@ -5,20 +5,20 @@ import math
 import random
 
 def illuminationAlg(image, alpha):
+    cv2.normalize(image, image, alpha=1, beta=255, norm_type=cv2.NORM_MINMAX)
     rows,cols,channels = image.shape
-    newImage = np.zeros((rows,cols,1), np.float)
+    newImage = np.copy(image)
+    cv2.cvtColor(newImage, cv2.COLOR_BGR2GRAY)
     image = image.astype('float') / 255
+    newImage = newImage.astype('float') / 255
+    print newImage.shape <-- this is 3 channels! Could also try doing global operations on each channel and then
+                             merging the channels to get gray
     for x in xrange (rows):
         for y in xrange (cols):
-            if image[x][y][0] == 0:
-                image[x][y][0] = 1
-            if image[x][y][1] == 0:
-                image[x][y][1] = 1
-            if image[x][y][2] == 0:
-                image[x][y][2] = 1
-            newValue = 0.5 + math.log(image[x][y][2]) - (alpha * math.log(image[x][y][1])) - ((1 - alpha) * math.log(image[x][y][0]))
+            newValue = 0.5 + math.log(image[x][y][1]) - (alpha * math.log(image[x][y][0])) - ((1 - alpha) * math.log(image[x][y][2]))
             newImage[x][y] = newValue
     newImage = (newImage * 255).astype('uint8')
+    cv2.normalize(newImage, newImage, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
     return newImage
 
 def illuminationHSV(image):
