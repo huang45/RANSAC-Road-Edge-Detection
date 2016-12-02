@@ -5,26 +5,30 @@ import numpy as np
 def nothing(x):
     pass
 
-def illuminationHSV(image):
-    rows,cols,channels = image.shape
-    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hsv = cv2.split(image_hsv)
-    return hsv[2]
-
 windowName = "Original Image"
 windowName2 = "Edges"
 keep_processing = True
+
+def illuminationHSV(image):
+    rows,cols,channels = image.shape
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    h,s,v = cv2.split(image_hsv)
+    cv2.normalize(h, h, alpha=0, beta=127, norm_type=cv2.NORM_MINMAX)
+    cv2.normalize(s, s, alpha=0, beta=127, norm_type=cv2.NORM_MINMAX)
+    newImage = cv2.add(h,s)
+    cv2.normalize(newImage, newImage, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    return newImage
 
 if (len(sys.argv) == 2):
 
     cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
     cv2.namedWindow(windowName2, cv2.WINDOW_NORMAL)
 
-    lower_threshold = 75
+    lower_threshold = 25
     cv2.createTrackbar("lower", windowName2, lower_threshold, 255, nothing)
-    upper_threshold = 175
+    upper_threshold = 120
     cv2.createTrackbar("upper", windowName2, upper_threshold, 255, nothing)
-    smoothing_neighbourhood = 7
+    smoothing_neighbourhood = 3
     cv2.createTrackbar("smoothing", windowName2, smoothing_neighbourhood, 15, nothing)
     sobel_size = 3
     cv2.createTrackbar("sobel size", windowName2, sobel_size, 7, nothing)
